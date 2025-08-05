@@ -118,7 +118,6 @@
     }
 
     #details img {
-      width: 120px;
       display: block;
       margin: auto;
     }
@@ -143,6 +142,22 @@
 
     ul#stats li {
       padding: 4px 0;
+    }
+
+    #evolution-chain {
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .evo-stage {
+      display: inline-block;
+      text-align: center;
+      margin: 0 10px;
+    }
+
+    .evo-stage img {
+      width: 72px;
+      height: 72px;
     }
 
     @media (max-width: 600px) {
@@ -196,6 +211,8 @@
       <div class="types" id="types"></div>
       <h3>Základní statistiky:</h3>
       <ul id="stats"></ul>
+      <h3>Vývojová linie:</h3>
+      <div id="evolution-chain">Načítání...</div>
     </div>
   </div>
 
@@ -207,6 +224,7 @@
     const typesEl = document.getElementById('types');
     const statsEl = document.getElementById('stats');
     const closeBtn = document.getElementById('close-btn');
+    const evoChainEl = document.getElementById('evolution-chain');
 
     const searchNameInput = document.getElementById('search-name');
     const searchTypeSelect = document.getElementById('search-type');
@@ -259,11 +277,12 @@
       renderPokemon(allPokemon);
     };
 
-    const showDetails = (pokemon) => {
+    const showDetails = async (pokemon) => {
       nameEl.textContent = `#${String(pokemon.id).padStart(3, '0')} – ${capitalize(pokemon.name)}`;
       spriteEl.src = pokemon.sprites.front_default;
       typesEl.innerHTML = '';
       statsEl.innerHTML = '';
+      evoChainEl.innerHTML = 'Načítání...';
 
       pokemon.types.forEach(t => {
         const span = document.createElement('span');
@@ -277,6 +296,37 @@
         li.textContent = `${stat.stat.name}: ${stat.base_stat}`;
         statsEl.appendChild(li);
       });
+
+      try {
+        const speciesRes = await fetch(pokemon.species.url);
+        const speciesData = await speciesRes.json();
+        const evoRes = await fetch(speciesData.evolution_chain.url);
+        const evoData = await evoRes.json();
+
+        const evoChain = [];
+        let current = evoData.chain;
+        while (current) {
+          evoChain.push(current.species.name);
+          current = current.evolves_to?.[0];
+        }
+
+        const evoHTML = await Promise.all(
+          evoChain.map(async name => {
+            const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${name}`);
+            const data = await res.json();
+            return `
+              <div class="evo-stage">
+                <img src="${data.sprites.front_default}" alt="${name}">
+                <div>${capitalize(name)}</div>
+              </div>
+            `;
+          })
+        );
+
+        evoChainEl.innerHTML = evoHTML.join('<span style="font-size:24px;vertical-align:middle;">→</span>');
+      } catch (err) {
+        evoChainEl.textContent = 'Nepodařilo se načíst vývojovou linii.';
+      }
 
       detailsModal.style.display = 'block';
     };
