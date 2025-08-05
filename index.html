@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pokédex – 1. Generace</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #ef5350;
+      --background: #f4f4f4;
+      --card-bg: white;
+      --border-radius: 12px;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Rubik', sans-serif;
+      background-color: var(--background);
+      color: #333;
+    }
+
+    h1 {
+      text-align: center;
+      padding: 20px;
+      background-color: var(--primary);
+      color: white;
+      margin: 0;
+    }
+
+    #pokemon-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 20px;
+      padding: 20px;
+      max-width: 1200px;
+      margin: auto;
+    }
+
+    .pokemon-card {
+      background-color: var(--card-bg);
+      border-radius: var(--border-radius);
+      padding: 15px;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+    }
+
+    .pokemon-card:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+    }
+
+    .pokemon-image {
+      width: 96px;
+      height: 96px;
+    }
+
+    .type-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      margin: 2px;
+      border-radius: 8px;
+      color: white;
+      font-size: 0.8em;
+    }
+
+    /* Type Colors */
+    .normal { background-color: #A8A77A; }
+    .fire { background-color: #EE8130; }
+    .water { background-color: #6390F0; }
+    .electric { background-color: #F7D02C; }
+    .grass { background-color: #7AC74C; }
+    .ice { background-color: #96D9D6; }
+    .fighting { background-color: #C22E28; }
+    .poison { background-color: #A33EA1; }
+    .ground { background-color: #E2BF65; }
+    .flying { background-color: #A98FF3; }
+    .psychic { background-color: #F95587; }
+    .bug { background-color: #A6B91A; }
+    .rock { background-color: #B6A136; }
+    .ghost { background-color: #735797; }
+    .dragon { background-color: #6F35FC; }
+    .dark { background-color: #705746; }
+    .steel { background-color: #B7B7CE; }
+    .fairy { background-color: #D685AD; }
+
+    /* Modal */
+    #details-modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+    }
+
+    #details {
+      background-color: #fff;
+      margin: 10% auto;
+      padding: 20px;
+      width: 90%;
+      max-width: 500px;
+      border-radius: var(--border-radius);
+      position: relative;
+    }
+
+    #details img {
+      width: 120px;
+      display: block;
+      margin: auto;
+    }
+
+    #details h2 {
+      text-align: center;
+    }
+
+    #close-btn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 1.5em;
+      cursor: pointer;
+      color: #666;
+    }
+
+    ul#stats {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    ul#stats li {
+      padding: 4px 0;
+    }
+
+    @media (max-width: 600px) {
+      .pokemon-card {
+        padding: 10px;
+      }
+
+      .pokemon-image {
+        width: 72px;
+        height: 72px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Pokédex – 1. Generace (001–151)</h1>
+  <div id="pokemon-list"></div>
+
+  <!-- Modal pro detaily -->
+  <div id="details-modal">
+    <div id="details">
+      <span id="close-btn">&times;</span>
+      <h2 id="name"></h2>
+      <img id="sprite" src="" alt="">
+      <div class="types" id="types"></div>
+      <h3>Základní statistiky:</h3>
+      <ul id="stats"></ul>
+    </div>
+  </div>
+
+  <script>
+    const pokemonList = document.getElementById('pokemon-list');
+    const detailsModal = document.getElementById('details-modal');
+    const nameEl = document.getElementById('name');
+    const spriteEl = document.getElementById('sprite');
+    const typesEl = document.getElementById('types');
+    const statsEl = document.getElementById('stats');
+    const closeBtn = document.getElementById('close-btn');
+
+    // Zavření modalu
+    closeBtn.addEventListener('click', () => detailsModal.style.display = 'none');
+    window.addEventListener('click', (e) => {
+      if (e.target === detailsModal) detailsModal.style.display = 'none';
+    });
+
+    const capitalize = str => str.charAt(0).toUpperCase() + str.slice(1);
+
+    const loadPokemonList = async () => {
+      for (let i = 1; i <= 151; i++) {
+        const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${i}`);
+        const data = await response.json();
+
+        const card = document.createElement('div');
+        card.className = 'pokemon-card';
+        card.innerHTML = `
+          <img class="pokemon-image" src="${data.sprites.front_default}" alt="${data.name}" />
+          <strong>#${String(data.id).padStart(3, '0')}</strong><br>${capitalize(data.name)}
+        `;
+        card.addEventListener('click', () => showDetails(data));
+        pokemonList.appendChild(card);
+      }
+    };
+
+    const showDetails = (pokemon) => {
+      nameEl.textContent = `#${String(pokemon.id).padStart(3, '0')} – ${capitalize(pokemon.name)}`;
+      spriteEl.src = pokemon.sprites.front_default;
+      typesEl.innerHTML = '';
+      statsEl.innerHTML = '';
+
+      pokemon.types.forEach(t => {
+        const span = document.createElement('span');
+        span.textContent = t.type.name;
+        span.className = `type-badge ${t.type.name}`;
+        typesEl.appendChild(span);
+      });
+
+      pokemon.stats.forEach(stat => {
+        const li = document.createElement('li');
+        li.textContent = `${stat.stat.name}: ${stat.base_stat}`;
+        statsEl.appendChild(li);
+      });
+
+      detailsModal.style.display = 'block';
+    };
+
+    loadPokemonList();
+  </script>
+</body>
+</html>
